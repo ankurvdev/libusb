@@ -23,9 +23,62 @@ namespace winrtWDE = winrt::Windows::Devices::Enumeration;
 
 struct UwpContext
 {
+    libusb_context* ctx;
+    std::unordered_map<winrt::hstring, uint16_t> fakeAddresses;
+
+    static UwpContext& Get(libusb_context* ctx)
+    {
+        return *reinterpret_cast<UwpContext*>(usbi_get_context_priv(ctx));
+    }
+    static void Init(libusb_context* ctx)
+    {
+        // Inplace constructor
+        auto ictx = new(usbi_get_context_priv(ctx)) UwpContext();
+        ictx->ctx = ctx;
+    }
+    static void Exit(libusb_context* ctx)
+    {
+        // Inplace destructor
+        reinterpret_cast<UwpContext*>(usbi_get_context_priv(ctx))->~UwpContext();
+    }
 };
 struct UwpDevice
 {
+    UwpDevice() = default;
+
+    struct libusb_device* dev{};
+    winrtWDU::UsbDevice usbdevice{ nullptr };
+    winrtWDE::DeviceInformation info{ nullptr };
+
+    static UwpDevice& Create(UwpContext& ctx, winrtWDU::UsbDevice const& usbdevice, winrtWDE::DeviceInformation const& info)
+    {
+        auto desc = usbdevice.DeviceDescriptor();
+        size_t sessionId = [&]() ->size_t
+        {
+            auto it = ctx.fakeAddresses.find(info.Id());
+            if (it == ctx.fakeAddresses.end())
+            {
+                auto size = static_cast<uint16_t>(ctx.fakeAddresses.size());
+                ctx.fakeAddresses[info.Id()] = size;
+                return size;
+            }
+            return it->second;
+        }();
+        auto dev = usbi_alloc_device(ctx.ctx, sessionId);
+        // Inplace construct
+        auto idev = new (usbi_get_device_priv(dev)) UwpDevice();
+        idev->dev = dev;
+        idev->usbdevice = usbdevice;
+        idev->info = info;
+        return *idev;
+    }
+
+    static void Destroy(struct libusb_device* dev)
+    {
+        // Inplace destruct
+        (reinterpret_cast<UwpDevice*>(usbi_get_device_priv(dev)))->~UwpDevice();
+    }
+
 };
 struct UwpDeviceHandle
 {
@@ -33,30 +86,43 @@ struct UwpDeviceHandle
 struct UwpTransfer
 {
 };
+
+
 void usbi_get_monotonic_time(struct timespec* tp)
 {
-    auto now   = std::chrono::system_clock::now();
-    auto secs  = std::chrono::time_point_cast<std::chrono::seconds>(now);
-    auto ns    = std::chrono::time_point_cast<std::chrono::nanoseconds>(now) - std::chrono::time_point_cast<std::chrono::nanoseconds>(secs);
+    auto now = std::chrono::system_clock::now();
+    auto secs = std::chrono::time_point_cast<std::chrono::seconds>(now);
+    auto ns = std::chrono::time_point_cast<std::chrono::nanoseconds>(now) - std::chrono::time_point_cast<std::chrono::nanoseconds>(secs);
     tp->tv_sec = secs.time_since_epoch().count();
     tp->tv_nsec = ns.count();
 }
 
+static int uwp_init(struct libusb_context* ctx)
+{
+    UwpContext::Init(ctx);
+    return 0;
+}
+static void uwp_exit(struct libusb_context* ctx)
+{
+    UwpContext::Exit(ctx);
+}
+
 static int uwp_get_device_list(struct libusb_context* ctx, struct discovered_devs** discdevs)
 {
-
     auto aqs = L"System.Devices.InterfaceClassGuid:=\"{A5DCBF10-6530-11D2-901F-00C04FB951ED}\" AND "
-               L"System.Devices.InterfaceEnabled:=System.StructuredQueryType.Boolean#True";
-    for (auto dev : winrtWDE::DeviceInformation::FindAllAsync(aqs).get())
+        L"System.Devices.InterfaceEnabled:=System.StructuredQueryType.Boolean#False";
+    for (auto info : winrtWDE::DeviceInformation::FindAllAsync(aqs).get())
     {
         try
         {
-            auto usbdevice = winrtWDU::UsbDevice::FromIdAsync(dev.Id()).get();
+            auto usbdevice = winrtWDU::UsbDevice::FromIdAsync(info.Id()).get();
             if (!usbdevice) continue;
-            // auto conf      = usbdevice.Configuration();
-            auto desc = usbdevice.DeviceDescriptor();
-            std::wcout << std::hex << dev.Name().c_str() << "::" << desc.BcdUsb() << "::" << desc.BcdDeviceRevision() << "::" << desc.ProductId()
-                       << std::endl;
+
+            *discdevs = discovered_devs_append(*discdevs, UwpDevice::Create(UwpContext::Get(ctx), usbdevice, info).dev);
+            if (discdevs == nullptr)
+            {
+                throw std::runtime_error("Cannot Create a libusb device");
+            }
         }
         catch (...)
         {
@@ -64,12 +130,9 @@ static int uwp_get_device_list(struct libusb_context* ctx, struct discovered_dev
     }
     return 0;
 }
-static int uwp_init(struct libusb_context* ctx)
+static void uwp_destroy_device(struct libusb_device* dev)
 {
-    return 0;
-}
-static void uwp_exit(struct libusb_context* ctx)
-{
+    UwpDevice::Destroy(dev);
 }
 
 static int uwp_open(struct libusb_device_handle* dev_handle)
@@ -121,10 +184,7 @@ static int uwp_reset_device(struct libusb_device_handle* dev_handle)
 {
     TODO();
 }
-static void uwp_destroy_device(struct libusb_device* dev)
-{
-    TODO();
-}
+
 static int uwp_submit_transfer(struct usbi_transfer* itransfer)
 {
     TODO();
