@@ -425,12 +425,9 @@ static int op_init(struct libusb_context *ctx)
 
 #ifdef __ANDROID__
 	if (default_context_options[LIBUSB_OPTION_ANDROID_JAVAVM].arg.pval != NULL) {
-		r = android_jni(
+		return android_jni(
 			(JavaVM*)default_context_options[LIBUSB_OPTION_ANDROID_JAVAVM].arg.pval,
 			&cpriv->android_jni);
-		if (r != LIBUSB_SUCCESS)
-			return r;
-		return android_jni_scan_devices(ctx);
 	}
 #endif
 
