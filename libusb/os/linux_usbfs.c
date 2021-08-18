@@ -428,6 +428,10 @@ static int op_init(struct libusb_context *ctx)
 		return android_jni(
 			(JavaVM*)default_context_options[LIBUSB_OPTION_ANDROID_JAVAVM].arg.pval,
 			&cpriv->android_jni);
+		if (r != LIBUSB_SUCCESS)
+			return r;
+		android_jni_scan_devices(ctx);
+		return LIBUSB_SUCCESS;
 	}
 #endif
 
@@ -439,6 +443,7 @@ static int op_init(struct libusb_context *ctx)
 		/* start up hotplug event handler */
 		r = linux_start_event_monitor();
 	}
+
 	if (r == LIBUSB_SUCCESS) {
 		r = linux_scan_devices(ctx);
 		if (r == LIBUSB_SUCCESS)
