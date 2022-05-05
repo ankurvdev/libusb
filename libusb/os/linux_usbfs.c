@@ -509,8 +509,7 @@ static int op_set_option(struct libusb_context *ctx, enum libusb_option option, 
 	UNUSED(ap);
 #endif
 
-	if (option == LIBUSB_OPTION_NO_DEVICE_DISCOVERY ||
-	    option == LIBUSB_OPTION_WEAK_AUTHORITY) {
+	if (option == LIBUSB_OPTION_NO_DEVICE_DISCOVERY) {
 		usbi_dbg(ctx, "no enumeration will be performed");
 		return LIBUSB_SUCCESS;
 	}
@@ -1653,7 +1652,7 @@ static int op_get_configuration(struct libusb_device_handle *handle,
 	uint8_t *config)
 {
 	struct linux_device_priv *priv = usbi_get_device_priv(handle->dev);
-	int active_config;
+	int active_config = -1; /* to please compiler */
 	int r;
 
 	if (priv->sysfs_dir) {

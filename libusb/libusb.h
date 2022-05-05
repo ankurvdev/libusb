@@ -26,6 +26,9 @@
 #define LIBUSB_H
 
 #if defined(_MSC_VER)
+#pragma warning(push)
+/* Disable: warning C4200: nonstandard extension used : zero-sized array in struct/union */
+#pragma warning(disable:4200)
 /* on MS environments, the inline keyword is available in C++ only */
 #if !defined(__cplusplus)
 #define inline __inline
@@ -139,7 +142,7 @@ typedef SSIZE_T ssize_t;
  * Internally, LIBUSB_API_VERSION is defined as follows:
  * (libusb major << 24) | (libusb minor << 16) | (16 bit incremental)
  */
-#define LIBUSB_API_VERSION 0x01000108
+#define LIBUSB_API_VERSION 0x01000109
 
 /* The following is kept for compatibility, but will be deprecated in the future */
 #define LIBUSBX_API_VERSION LIBUSB_API_VERSION
@@ -2115,15 +2118,13 @@ enum libusb_option {
 	 * This is typically needed on Android, where access to USB devices
 	 * is limited.
 	 *
+	 * For LIBUSB_API_VERSION 0x01000108 it was called LIBUSB_OPTION_WEAK_AUTHORITY
+	 *
 	 * Only valid on Linux.
 	 */
 	LIBUSB_OPTION_NO_DEVICE_DISCOVERY = 2,
 
-	/** Flag that libusb has weak authority.
-	 *
-	 * (Deprecated) alias for LIBUSB_OPTION_NO_DEVICE_DISCOVERY
-	 */
-	LIBUSB_OPTION_WEAK_AUTHORITY = 3,
+#define LIBUSB_OPTION_WEAK_AUTHORITY LIBUSB_OPTION_NO_DEVICE_DISCOVERY
 
 	/** Provide a JNIEnv* pointer for libusb to use on Android.  If this
 	 * pointer is nonzero, the Android SDK will be used for backend
@@ -2159,7 +2160,7 @@ enum libusb_option {
 	 *
 	 * Only valid on Android.
 	 */
-	LIBUSB_OPTION_ANDROID_JNIENV = 4,
+	LIBUSB_OPTION_ANDROID_JNIENV = 3,
 
 	/** Like LIBUSB_OPTION_ANDROID_JNIENV, except a thread-agnostic JavaVM*
 	 * pointer is passed instead of a thread-specific JNIEnv* pointer.  If
@@ -2168,12 +2169,16 @@ enum libusb_option {
 	 *
 	 * Setting either option is equivalent.
 	 */
-	LIBUSB_OPTION_ANDROID_JAVAVM = 5,
+	LIBUSB_OPTION_ANDROID_JAVAVM = 4,
 
-	LIBUSB_OPTION_MAX = 6
+	LIBUSB_OPTION_MAX = 5
 };
 
 int LIBUSB_CALL libusb_set_option(libusb_context *ctx, enum libusb_option option, ...);
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 #if defined(__cplusplus)
 }
