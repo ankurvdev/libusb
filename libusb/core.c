@@ -1,4 +1,4 @@
-x/* -*- Mode: C; indent-tabs-mode:t ; c-basic-offset:8 -*- */
+/* -*- Mode: C; indent-tabs-mode:t ; c-basic-offset:8 -*- */
 /*
  * Core functions for libusb
  * Copyright © 2012-2013 Nathan Hjelm <hjelmn@cs.unm.edu>
@@ -2229,13 +2229,18 @@ int API_EXPORTED libusb_set_option(libusb_context *ctx,
 	/* Handle all backend-specific options here */
 	case LIBUSB_OPTION_ANDROID_JNIENV:
 	case LIBUSB_OPTION_ANDROID_JAVAVM:
-		usbi_mutex_static_lock(&default_context_lock);
-		if (usbi_backend.set_option)
-			r = usbi_backend.set_option(ctx, option, ap);
-		else
-			r = LIBUSB_ERROR_NOT_SUPPORTED;
-		usbi_mutex_static_unlock(&default_context_lock);
-		return r;
+		if (NULL == ctx) {
+			usbi_mutex_static_lock(&default_context_lock);
+			if (usbi_backend.set_option)
+				r = usbi_backend.set_option(ctx, option, ap);
+			else
+				r = LIBUSB_ERROR_NOT_SUPPORTED;
+			usbi_mutex_static_unlock(&default_context_lock);
+			return r;
+		}
+		else {
+			return LIBUSB_SUCCESS;
+		}
 	case LIBUSB_OPTION_USE_USBDK:
 	case LIBUSB_OPTION_NO_DEVICE_DISCOVERY:
 		/* fallthru */
