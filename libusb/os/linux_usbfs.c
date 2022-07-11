@@ -482,11 +482,6 @@ static void op_exit(struct libusb_context *ctx)
 
 static int op_set_option(struct libusb_context *ctx, enum libusb_option option, va_list ap)
 {
-	/* ensure ctx is not active yet */
-	if (ctx->list.next != NULL) {
-		return LIBUSB_ERROR_NOT_SUPPORTED;
-	}
-
 #ifdef __ANDROID__
 	if (option == LIBUSB_OPTION_ANDROID_JNIENV) {
 		JNIEnv * jni_env = va_arg(ap, JNIEnv *);
@@ -510,6 +505,9 @@ static int op_set_option(struct libusb_context *ctx, enum libusb_option option, 
 		no_enumeration = 1;
 		return LIBUSB_SUCCESS;
 	}
+
+	return LIBUSB_ERROR_NOT_SUPPORTED;
+}
 
 #ifdef __ANDROID__
 
