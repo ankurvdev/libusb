@@ -3061,7 +3061,7 @@ const struct usbi_os_backend usbi_backend = {
 	.exit = op_exit,
 
 // Another option, disable hotplug all together
-#if __ANDROID__
+#if defined(__ANDROID__) && __ANDROID__
 	//.get_device_list = android_jni_get_device_list,
 #endif
 
