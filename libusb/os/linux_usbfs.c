@@ -102,7 +102,7 @@ static int init_count = 0;
 #ifdef __ANDROID__
 static int android_jni_scan_devices(struct libusb_context *ctx);
 
-JavaVM* javaVm = NULL;
+static JavaVM* javaVm = NULL;
 #endif
 
 /* have no authority to operate usb device directly */
