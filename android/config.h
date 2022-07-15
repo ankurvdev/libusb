@@ -35,7 +35,7 @@
 #define HAVE_EVENTFD 1
 
 /* Define to 1 if you have the `udev' library (-ludev). */
-#define HAVE_LIBUDEV 0
+/* #undef #define HAVE_LIBUDEV */
 
 /* Define to 1 if the system has the type `nfds_t'. */
 #define HAVE_NFDS_T 1
@@ -53,7 +53,7 @@
 #define HAVE_PTHREAD_THREADID_NP 1
 
 /* Define to 1 if you have the `syslog' function. */
-#define HAVE_SYSLOG 0
+/* #undef HAVE_SYSLOG */
 
 /* Define to 1 if you have the <sys/time.h> header file. */
 #define HAVE_SYS_TIME_H 1
